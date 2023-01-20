@@ -1,0 +1,39 @@
+# .github/workflows/app.yml
+name: PyTest
+on:
+  push:
+    branches: master
+  pull_request:
+
+jobs:
+  branch_unit_tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      # Setup Python (faster than using Python Container)
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+
+      # Install Dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run tests and Build code coverage file
+        run: |
+          set -o pipefail
+          pytest --cache-clear --cov=PasswordChecker.main --cov=LinkedList.main --cov-report=term-missing | tee pytest-coverage.txt ; echo $?
+
+      - name: Comment code coverage on Pull Request
+        if: github.event_name == 'pull_request'
+        uses: coroo/pytest-coverage-commentator@v1.0.2
+        with:
+          pytest-coverage: pytest-coverage.txt
